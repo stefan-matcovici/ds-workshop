@@ -1,26 +1,40 @@
 import numpy as np
 
+TRAIN_FEATURES_FILE = "./prepared-data/train-features.txt"
+TRAIN_LABELS_FILE = "./prepared-data/train-labels.txt"
+TEST_FEATURES_FILE = "./prepared-data/test-features.txt"
+TEST_LABELS_FILE = "./prepared-data/test-labels.txt"
+
 numTrainDocs = 700
 numTestDocs = 260
 numTokens = 2500
 nuTestTokens = 2500
 
-if __name__ == "__main__":
-    x = np.zeros((numTrainDocs, numTokens))
 
-    with open("./prepared-data/train-features.txt") as f:
+def load_features(file_name, no_docs, no_tokens):
+    x = np.zeros((no_docs, no_tokens))
+
+    with open(file_name) as f:
         for line in f.read().split("\n"):
             document, word_id, appeareances = list(map(int, line.split(" ")))
-            x[document-1, word_id-1] = appeareances
+            x[document - 1, word_id - 1] = appeareances
 
-    spam_documents = []
-    non_spam_documents = []
-    with open("./prepared-data/train-labels.txt") as f:
-        for line_no, label in enumerate(f.read().split("\n"), 0):
-            if label == "0":
-                non_spam_documents.append(line_no)
-            else:
-                spam_documents.append(line_no)
+    return x
+
+
+def load_labels(file_name):
+    with open(file_name) as f:
+        labels = np.array(list(map(int, f.read().split("\n"))))
+        labels = np.array([True if x == 1 else False for x in labels])
+    return labels
+
+
+if __name__ == "__main__":
+    x = load_features(TRAIN_FEATURES_FILE, numTrainDocs, numTokens)
+    train_labels = load_labels(TRAIN_LABELS_FILE)
+
+    spam_documents = [i for i, x in enumerate(train_labels) if x == 1]
+    non_spam_documents = [i for i, x in enumerate(train_labels) if x == 0]
 
     spam_probability = len(spam_documents) / numTrainDocs
     email_lenghts = np.sum(x, 1)
@@ -34,23 +48,15 @@ if __name__ == "__main__":
     prob_tokens_spam = prob_tokens_spam.reshape(-1, 1)
     prob_tokens_nonspam = prob_tokens_nonspam.reshape((-1, 1))
 
-    test_x = np.zeros((numTestDocs, nuTestTokens))
-    with open("./prepared-data/test-features.txt") as f:
-        for line in f.read().split("\n"):
-            document, word_id, appeareances = list(map(int, line.split(" ")))
-            test_x[document-1, word_id-1] = appeareances
+    test_x = load_features(TEST_FEATURES_FILE, numTestDocs, nuTestTokens)
 
     log_a = np.dot(test_x, np.log(prob_tokens_spam)) + np.log(spam_probability)
     log_b = np.dot(test_x, np.log(prob_tokens_nonspam)) + np.log(1 - spam_probability)
     output = log_a > log_b
 
-    with open("./prepared-data/test-labels.txt") as f:
-        test_labels = np.array(list(map(int, f.read().split("\n"))))
-        test_labels = np.array([True if x == 1 else False for x in test_labels])
+    test_labels = load_labels(TEST_LABELS_FILE)
+    test_labels = test_labels.reshape((-1, 1))
 
-    test_labels = test_labels.reshape((len(test_labels), 1))
-
-    test_labels = np.reshape(test_labels, (len(test_labels), 1))
     numdocs_wrong = np.sum(np.logical_xor(output, test_labels))
     fraction_wrong = numdocs_wrong / numTestDocs
 
