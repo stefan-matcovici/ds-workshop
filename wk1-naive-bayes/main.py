@@ -1,21 +1,21 @@
 import numpy as np
 
-TRAIN_FEATURES_FILE = "./prepared-data/train-features.txt"
+TRAIN_FEATURES_FILE = "ln_train_features.txt"
 TRAIN_LABELS_FILE = "./prepared-data/train-labels.txt"
-TEST_FEATURES_FILE = "./prepared-data/test-features.txt"
+TEST_FEATURES_FILE = "ln_test_features.txt"
 TEST_LABELS_FILE = "./prepared-data/test-labels.txt"
 
 numTrainDocs = 700
 numTestDocs = 260
-numTokens = 2500
-nuTestTokens = 2500
+numTokens = 1923
+nuTestTokens = 1923
 
 
 def load_features(file_name, no_docs, no_tokens):
-    x = np.zeros((no_docs, no_tokens))
+    x = np.zeros((no_docs, no_tokens), dtype="float64")
 
     with open(file_name) as f:
-        for line in f.read().split("\n"):
+        for line in f.read().split("\n")[:-1]:
             document, word_id, appeareances = list(map(int, line.split(" ")))
             x[document - 1, word_id - 1] = appeareances
 
