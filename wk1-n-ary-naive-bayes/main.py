@@ -65,9 +65,25 @@ def plot_confusion_matrix(cm, classes,
     plt.tight_layout()
 
 
+dirichlet_factor = 1e-2
+
+
+def plot_confusion_matrix_for_output(classes, test_labels, output):
+    cnf_matrix = confusion_matrix(test_labels, output)
+    np.set_printoptions(precision=2)
+    plt.figure()
+    plot_confusion_matrix(cnf_matrix, classes=classes, normalize=True,
+                          title='Normalized confusion matrix')
+
+    plt.show()
+
+
 if __name__ == "__main__":
     x = load_features(TRAIN_FEATURES_FILE, numTrainDocs, numTokens)
     train_labels = load_labels(TRAIN_LABELS_FILE)
+
+    test_x = load_features(TEST_FEATURES_FILE, numTestDocs, numTestTokens)
+    test_labels = load_labels(TEST_LABELS_FILE)
 
     noTypeDocs = len(set(train_labels))
 
@@ -76,30 +92,32 @@ if __name__ == "__main__":
     doc_lenghts = np.sum(x, 1)
 
     docs_word_count = [np.sum(np.take(doc_lenghts, docs_idx[docType])) for docType in range(noTypeDocs)]
-    probs = [(np.sum(np.take(x, docs_idx[docType], 0), 0) + 1) / (docs_word_count[docType] + numTokens) for docType in
-             range(noTypeDocs)]
-
-    test_x = load_features(TEST_FEATURES_FILE, numTestDocs, numTestTokens)
-    logs = [np.dot(test_x, np.log(probs[docType])) + np.log(docs_prob_distribution[docType]) for docType in
+    factor = 1
+    plt.figure()
+    factors = []
+    accuracies = []
+    while factor > 10 ** (-5):
+        probs = [
+            (np.sum(np.take(x, docs_idx[docType], 0), 0) + 1 * factor) / (docs_word_count[docType] + numTokens * factor)
+            for docType in
             range(noTypeDocs)]
-    output = np.argmax(logs, 0) + 1
 
-    test_labels = load_labels(TEST_LABELS_FILE)
+        logs = [np.dot(test_x, np.log(probs[docType])) + np.log(docs_prob_distribution[docType]) for docType in
+                range(noTypeDocs)]
+        output = np.argmax(logs, 0) + 1
 
-    numdocs_right = np.sum([1 if o == t else 0 for o, t in zip(output, test_labels)])
-    fraction_right = numdocs_right / numTestDocs
+        numdocs_right = np.sum([1 if o == t else 0 for o, t in zip(output, test_labels)])
+        fraction_right = numdocs_right / numTestDocs
 
-    print(fraction_right)
+        print(fraction_right)
+        factors.append(factor)
+        accuracies.append(fraction_right)
+        factor *= 0.5
+
+    plt.plot(list(reversed(factors)), list(reversed(accuracies)), label="Accuracy")
+    plt.legend()
+    plt.show()
 
     classes = load_class_names("./data/newsgrouplabels.txt")
 
-    # Compute confusion matrix
-    cnf_matrix = confusion_matrix(test_labels, output)
-    np.set_printoptions(precision=2)
-
-    # Plot normalized confusion matrix
-    plt.figure()
-    plot_confusion_matrix(cnf_matrix, classes=classes, normalize=True,
-                          title='Normalized confusion matrix')
-
-    plt.show()
+    # plot_confusion_matrix_for_output(classes, test_labels, output)
