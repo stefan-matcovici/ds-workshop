@@ -38,31 +38,35 @@ def get_error(x, y, a, b):
     return np.sum((y - a * np.sin(b * x)) ** 2)
 
 
-def plot_points_with_function_estimation(a, b, x, y):
+def plot_points_with_function_estimation(a, b, x, y, iteration):
     fig, ax = plt.subplots()
+    plt.title("Iteration: %d, a=%f, b=%f" % (iteration, a, b))
     ax.scatter(x, y, color='C1', label='real data')
     ax.plot(x, a * np.sin(b * x), color='C2', label='estimator')
     ax.legend()
     plt.show()
 
 
-def show_error_plot(x, y, a, b):
+def show_error_plot(x, y):
     fig = plt.figure()
     ax = fig.gca(projection='3d')
 
     # Make data.
-    a = np.arange(-10, 10, 20 / 100)
-    b = np.arange(-10, 10, 20 / 100)
+    a = np.arange(-2, 2, 4 / 100)
+    b = np.arange(-2, 2, 4 / 100)
     a, b = np.meshgrid(a, b)
 
-    z = (y - a * np.sin(b * x)) ** 2
+    duplicated_x = np.repeat(x, 100 * 100).reshape(100, 100, 100)
+    duplicated_y = np.repeat(y, 100 * 100).reshape(100, 100, 100)
+
+    z = np.sum((duplicated_y - a * np.sin(b * duplicated_x)) ** 2, axis=2)
 
     # Plot the surface.
     surf = ax.plot_surface(a, b, z, cmap=cm.coolwarm,
-                           linewidth=0, antialiased=False)
+                          linewidth=0, antialiased=False, alpha=0.5)
 
     # Customize the z axis.
-    # ax.view_init(30, 80)
+    ax.view_init(50, 75)
     # ax.set_zlim(0, 80)
     ax.zaxis.set_major_locator(LinearLocator(10))
     ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
@@ -85,14 +89,19 @@ if __name__ == "__main__":
     b = np.random.rand()
 
     errors = []
-    while no_iterations > 0:
-        no_iterations -= 1
+    a_s = []
+    b_s = []
+    i = 0
+    while i < no_iterations:
+        i += 1
         error = get_error(x, y, a, b)
         errors.append(error)
 
-        plot_points_with_function_estimation(a, b, x, y)
-        plt.pause(0.05)
+        plot_points_with_function_estimation(a, b, x, y, i)
+        plt.pause(0.1)
 
+        a_s.append(a)
+        b_s.append(b)
         a += learning_rate * 2 * np.sum(get_a_adjustements(x, y, a, b))
         b += learning_rate * 2 * np.sum(get_b_adjustements(x, y, a, b))
 
@@ -101,5 +110,5 @@ if __name__ == "__main__":
     ax.legend()
     plt.show()
 
-    plot_points_with_function_estimation(a, b, x, y)
-    show_error_plot(x, y, a, b)
+    # plot_points_with_function_estimation(a, b, x, y)
+    show_error_plot(x, y)
